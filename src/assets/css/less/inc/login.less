@@ -1,0 +1,24 @@
+.login-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  flex-direction: column;
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 30%;
+
+    @media (max-width: 1200px) {
+      min-width: 50%;
+    }
+
+    @media (max-width: 800px) {
+      min-width: 80%;
+    }
+  }
+}
