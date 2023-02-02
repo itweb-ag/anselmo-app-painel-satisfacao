@@ -9,7 +9,7 @@ import {
   Select,
   SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography
 } from "@mui/material";
-import {useEffect, useState} from "react";
+import {createRef, useEffect, useRef, useState} from "react";
 import {meses} from "../../../misc/datas";
 import {getDaysInMonth} from 'date-fns';
 import rangeNumberToArray from "../../../misc/function/rangeNumberToArray";
@@ -27,6 +27,7 @@ const RelatorioGeral = () => {
   const [grafico, setGrafico] = useState(true);
   const navigate = useNavigate();
   
+  
   const relatorioGeral = useCarregarRelatorioData(ano !== -1 ? (mes !== -1 ? (dia !== -1 ? `${ano}-${mes}-${dia}` : `${ano}-${mes}`) : `${ano}`) : '');
   const colaboradores = useCarregarColaboradores(true);
   
@@ -36,6 +37,7 @@ const RelatorioGeral = () => {
       setDia(-1);
     }
   }, [ano]);
+  
   
   useEffect(() => {
     if (mes === -1) {
@@ -172,15 +174,26 @@ const RelatorioGeral = () => {
                   }/>
                   :
                   (mes === -1 ?
-                      <BarChart labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)} dados={
-                        meses.map((item, index) => (
+                      <BarChart
+                        meses={ano === (new Date()).getFullYear()}
+                        labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)}
+                        opcoes={{
+                          responsive: true,
+                          plugins: {
+                            legend: {
+                              display: true,
+                            }
+                          }
+                        }}
+                        dados={meses.map((item, index) => (
                           {
                             label: item,
                             data: relatorioGeral.data.itens.map((itemMes: any) => itemMes.meses[index].quantidade > 0 ? (itemMes.meses[index].total / itemMes.meses[index].quantidade).toFixed(2) : 0),
                             backgroundColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
                           }
                         ))
-                      }/>
+                        }
+                      />
                       :
                       (dia !== -1 &&
                         <BarChart labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)} dados={
