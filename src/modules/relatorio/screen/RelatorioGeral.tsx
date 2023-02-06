@@ -18,6 +18,8 @@ import BarChart from "../component/BarChart";
 import useCarregarColaboradores from "../../colaborador/function/useCarregarColaboradores";
 import {ColaboradorEntity} from "../../colaborador/entity/ColaboradorEntity";
 import {useNavigate} from "react-router";
+import ReactToPrint, {PrintContextConsumer} from 'react-to-print';
+import {FaPrint} from "react-icons/all";
 
 const RelatorioGeral = () => {
   const [ano, setAno] = useState(-1);
@@ -26,7 +28,7 @@ const RelatorioGeral = () => {
   const [dias, setDias] = useState<Array<number>>([]);
   const [grafico, setGrafico] = useState(true);
   const navigate = useNavigate();
-  
+  const [tableRef, setTableRef] = useState<HTMLDivElement | null>(null);
   
   const relatorioGeral = useCarregarRelatorioData(ano !== -1 ? (mes !== -1 ? (dia !== -1 ? `${ano}-${mes}-${dia}` : `${ano}-${mes}`) : `${ano}`) : '');
   const colaboradores = useCarregarColaboradores(true);
@@ -38,13 +40,11 @@ const RelatorioGeral = () => {
     }
   }, [ano]);
   
-  
   useEffect(() => {
     if (mes === -1) {
       setDia(-1);
     } else {
       setDias(rangeNumberToArray(1, getDaysInMonth(new Date(ano, mes))));
-      setDia(1);
     }
   }, [mes]);
   
@@ -66,7 +66,7 @@ const RelatorioGeral = () => {
                 <Select
                   labelId="colaborador-select-label"
                   id="colaborador-select"
-                  // value={}
+                  value={''}
                   label="Colaborador"
                   onChange={(t) => {
                     navigate(`/relatorio/${t.target.value}`);
@@ -135,6 +135,7 @@ const RelatorioGeral = () => {
                   setDia(parseInt(`${t.target.value}`));
                 }}
               >
+                <MenuItem value={-1}>Todos</MenuItem>
                 {dias.map((item) => (
                   <MenuItem key={item} value={item}>{item}</MenuItem>
                 ))}
@@ -160,6 +161,19 @@ const RelatorioGeral = () => {
               >
                 {grafico ? "Mostrar tabela" : "Mostrar gráfico"}
               </Button>
+              {!grafico ?
+                <ReactToPrint content={() => tableRef}>
+                  <PrintContextConsumer>
+                    {({handlePrint}) => (
+                      <Tooltip title={"Imprimir"} sx={{ml: "5px"}}>
+                        <IconButton onClick={handlePrint}>
+                          <FaPrint/>
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </PrintContextConsumer>
+                </ReactToPrint>
+                : null}
             </div>
             {grafico ?
               (ano === -1 ?
@@ -195,20 +209,28 @@ const RelatorioGeral = () => {
                         }
                       />
                       :
-                      (dia !== -1 &&
-                        <BarChart labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)} dados={
-                          [{
-                            label: `Dia ${dia}`,
-                            data: relatorioGeral.data.itens.map((itemDia: any) => itemDia.quantidade > 0 ? (itemDia.total / itemDia.quantidade).toFixed(2) : 0),
-                            backgroundColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-                          }]
-                        }/>
+                      (dia === -1 ?
+                          <BarChart labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)} dados={
+                            [{
+                              label: `${meses[mes]}`,
+                              data: relatorioGeral.data.itens.map((item: any) => item.quantidade > 0 ? (item.total / item.quantidade).toFixed(2) : 0),
+                              backgroundColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+                            }]
+                          }/>
+                          :
+                          <BarChart labels={relatorioGeral.data.itens.map((item: any) => item.colaborador.nome)} dados={
+                            [{
+                              label: `Dia ${dia}`,
+                              data: relatorioGeral.data.itens.map((itemDia: any) => itemDia.quantidade > 0 ? (itemDia.total / itemDia.quantidade).toFixed(2) : 0),
+                              backgroundColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+                            }]
+                          }/>
                       )
                   )
               )
               :
               (ano === -1 ?
-                  <TableContainer>
+                  <TableContainer ref={(el) => setTableRef(el)}>
                     <Table stickyHeader>
                       <TableHead>
                         <TableRow>
@@ -232,6 +254,9 @@ const RelatorioGeral = () => {
                               <TableCell key={index}>
                                 Pontuação total: {itemAno.total}<br/>
                                 Respostas: {itemAno.quantidade}<br/>
+                                Ótimo: {itemAno.otimo}<br/>
+                                Regular: {itemAno.regular}<br/>
+                                Ruim: {itemAno.ruim}<br/>
                                 Média: {itemAno.total > 0 ? (itemAno.total / itemAno.quantidade).toFixed(2) : 0}
                               </TableCell>
                             ))}
@@ -242,7 +267,7 @@ const RelatorioGeral = () => {
                   </TableContainer>
                   :
                   (mes === -1 ?
-                      <TableContainer>
+                      <TableContainer ref={(el) => setTableRef(el)}>
                         <Table stickyHeader>
                           <TableHead>
                             <TableRow>
@@ -266,6 +291,9 @@ const RelatorioGeral = () => {
                                   <TableCell key={index}>
                                     Pontuação total: {itemMes.total}<br/>
                                     Respostas: {itemMes.quantidade}<br/>
+                                    Ótimo: {itemMes.otimo}<br/>
+                                    Regular: {itemMes.regular}<br/>
+                                    Ruim: {itemMes.ruim}<br/>
                                     Média: {itemMes.total > 0 ? (itemMes.total / itemMes.quantidade).toFixed(2) : 0}
                                   </TableCell>
                                 ))}
@@ -275,35 +303,70 @@ const RelatorioGeral = () => {
                         </Table>
                       </TableContainer>
                       :
-                      (dia !== -1 &&
-                        <TableContainer>
-                          <Table stickyHeader>
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>
-                                  Colaborador
-                                </TableCell>
-                                <TableCell>
-                                  Dia {dia}
-                                </TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {relatorioGeral.data.itens.map((item: any) => (
-                                <TableRow key={item.colaborador.uuid}>
+                      (dia === -1 ?
+                          <TableContainer ref={(el) => setTableRef(el)}>
+                            <Table stickyHeader>
+                              <TableHead>
+                                <TableRow>
                                   <TableCell>
-                                    {item.colaborador.nome}
+                                    Colaborador
                                   </TableCell>
                                   <TableCell>
-                                    Pontuação total: {item.total}<br/>
-                                    Respostas: {item.quantidade}<br/>
-                                    Média: {item.total > 0 ? (item.total / item.quantidade).toFixed(2) : 0}
+                                    {meses[mes]}
                                   </TableCell>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
+                              </TableHead>
+                              <TableBody>
+                                {relatorioGeral.data.itens.map((item: any) => (
+                                  <TableRow key={item.colaborador.uuid}>
+                                    <TableCell>
+                                      {item.colaborador.nome}
+                                    </TableCell>
+                                    <TableCell>
+                                      Pontuação total: {item.total}<br/>
+                                      Respostas: {item.quantidade}<br/>
+                                      Ótimo: {item.otimo}<br/>
+                                      Regular: {item.regular}<br/>
+                                      Ruim: {item.ruim}<br/>
+                                      Média: {item.total > 0 ? (item.total / item.quantidade).toFixed(2) : 0}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                          :
+                          <TableContainer ref={(el) => setTableRef(el)}>
+                            <Table stickyHeader>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>
+                                    Colaborador
+                                  </TableCell>
+                                  <TableCell>
+                                    Dia {dia}
+                                  </TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {relatorioGeral.data.itens.map((item: any) => (
+                                  <TableRow key={item.colaborador.uuid}>
+                                    <TableCell>
+                                      {item.colaborador.nome}
+                                    </TableCell>
+                                    <TableCell>
+                                      Pontuação total: {item.total}<br/>
+                                      Respostas: {item.quantidade}<br/>
+                                      Ótimo: {item.otimo}<br/>
+                                      Regular: {item.regular}<br/>
+                                      Ruim: {item.ruim}<br/>
+                                      Média: {item.total > 0 ? (item.total / item.quantidade).toFixed(2) : 0}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
                       )
                   )
               )
